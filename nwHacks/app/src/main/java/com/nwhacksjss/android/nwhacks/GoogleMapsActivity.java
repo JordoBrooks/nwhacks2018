@@ -71,7 +71,7 @@ public class GoogleMapsActivity extends AppCompatActivity
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        iwa = new TweetInfoWindowAdapter();
+        iwa = new TweetInfoWindowAdapter(GoogleMapsActivity.this);
     }
 
     /**

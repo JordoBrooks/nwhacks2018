@@ -1,5 +1,6 @@
 package com.nwhacksjss.android.nwhacks;
 
+import android.app.Activity;
 import android.view.View;
 
 import com.google.android.gms.maps.GoogleMap;
@@ -16,6 +17,8 @@ import com.twitter.sdk.android.tweetui.TweetView;
 
 import retrofit2.Call;
 
+import static java.security.AccessController.getContext;
+
 /**
  * Created by jordan on 14/01/18.
  */
@@ -24,6 +27,11 @@ public class TweetInfoWindowAdapter implements GoogleMap.InfoWindowAdapter {
 
     View view;
     Tweet tweet;
+    private Activity context;
+
+    public TweetInfoWindowAdapter(Activity context){
+        this.context = context;
+    }
 
     @Override
     public View getInfoWindow(Marker marker) {
@@ -45,7 +53,7 @@ public class TweetInfoWindowAdapter implements GoogleMap.InfoWindowAdapter {
 
         if (tweet != null) {
             // ideally would create View of tweet here
-            view = null;
+            view = new TweetView(context, tweet);
         } else {
             view = null;
         }
