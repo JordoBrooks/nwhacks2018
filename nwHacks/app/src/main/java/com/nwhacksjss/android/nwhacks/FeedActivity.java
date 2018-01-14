@@ -66,7 +66,7 @@ public class FeedActivity extends AppCompatActivity {
                 Location location = locationManager.getLastKnownLocation(provider);
                 double lat = location.getLatitude();
                 double lon = location.getLongitude();
-                currentLocation = new Geocode(lat, lon, 1000, Geocode.Distance.KILOMETERS);
+                currentLocation = new Geocode(lat, lon, 1, Geocode.Distance.KILOMETERS);
                 return true;
             }
         } catch (SecurityException e) {
@@ -94,7 +94,7 @@ public class FeedActivity extends AppCompatActivity {
         TwitterApiClient client = twitterCore.getApiClient();
         final SearchService searchService = client.getSearchService();
 
-        Call<Search> secondCall = searchService.tweets("", FeedActivity.currentLocation, null, null, null, 100, null, lastSinceId, null, null);
+        Call<Search> secondCall = searchService.tweets("", FeedActivity.currentLocation, null, null, null, 10, null, lastSinceId, null, null);
 
         secondCall.enqueue(new Callback<Search>() {
             @Override
@@ -120,11 +120,23 @@ public class FeedActivity extends AppCompatActivity {
                 TweetView tweetView = new TweetView(FeedActivity.this, tweet);
                 linearLayout.addView(tweetView);
 
-                if (tweet.coordinates != null) {
-                    LatLng coords = new LatLng(tweet.coordinates.getLatitude(), tweet.coordinates.getLongitude());
+                if (tweet.coordinates != null || tweet.place != null) {
+                    Double lat;
+                    Double lon;
+                    if (tweet.coordinates != null) {
+                        lat = tweet.coordinates.getLatitude();
+                        lon = tweet.coordinates.getLongitude();
+                    } else {
+
+                        lon = tweet.place.boundingBox.coordinates.get(0).get(0).get(0);
+                        lat = tweet.place.boundingBox.coordinates.get(0).get(0).get(1);
+                    }
+
+                    LatLng coords = new LatLng(lat, lon);
 
                     tweetIdCoordinates.put(tweet.id, coords);
                 }
+
             }
         }
     }
