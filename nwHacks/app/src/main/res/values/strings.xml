@@ -1,7 +1,7 @@
 <resources>
 
     <string name="app_name">Tweets \'Round the Corner</string>
-    <string name="title_activity_login">Sign in</string>
+    <string name="title_activity_login">Welcome!</string>
 
     <!-- Strings related to login -->
     <string name="prompt_email">Email</string>
@@ -31,6 +31,6 @@
     <string name="location_permission_denied">Location permission denied.</string>
 
     <!-- Feed -->
-    <string name="map">MAP</string>
+    <string name="map"> </string>
 
 </resources>
