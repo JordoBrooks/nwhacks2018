@@ -26,8 +26,16 @@
                     android:id="@+id/button_id"
                     android:layout_width="@android:dimen/app_icon_size"
                     android:layout_height="@android:dimen/app_icon_size"
-                    android:background="@drawable/map1"
-                    android:text="@string/map"></Button> </android.support.v7.widget.Toolbar>
+                    android:background="@drawable/map1"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:paddingStart="7dp"
+                    android:paddingTop="13dp"
+                    android:text="@string/map"
+                    android:textSize="20sp"/>
+            </android.support.v7.widget.Toolbar>
 
         </android.support.design.widget.AppBarLayout>
 
