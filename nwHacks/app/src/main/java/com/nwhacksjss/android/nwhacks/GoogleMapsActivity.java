@@ -19,6 +19,7 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.nwhacksjss.android.nwhacks.Utils.PermissionUtils;
 
@@ -50,12 +51,16 @@ public class GoogleMapsActivity extends AppCompatActivity
 
     private GoogleMap.InfoWindowAdapter iwa;
 
+    public static HashMap<Marker, Long> idLookup;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_google_maps);
+
+        idLookup = new HashMap<>();
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -110,7 +115,10 @@ public class GoogleMapsActivity extends AppCompatActivity
 
         for (Long id : tweetMap.keySet()) {
             LatLng coords = tweetMap.get(id);
-            mMap.addMarker(new MarkerOptions().position(coords).icon(BitmapDescriptorFactory.defaultMarker(203)).title(Long.toString(id)));
+            Marker marker = mMap.addMarker(new MarkerOptions().position(coords).icon(BitmapDescriptorFactory.defaultMarker(203)));
+
+            // Store id for future identification of tweet
+            idLookup.put(marker, id);
         }
     }
 
