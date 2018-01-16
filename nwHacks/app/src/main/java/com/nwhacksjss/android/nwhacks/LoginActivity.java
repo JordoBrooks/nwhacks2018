@@ -3,12 +3,9 @@ package com.nwhacksjss.android.nwhacks;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
-import android.widget.Toast;
 
 import com.twitter.sdk.android.core.Callback;
 import com.twitter.sdk.android.core.Result;
-import com.twitter.sdk.android.core.TwitterCore;
 import com.twitter.sdk.android.core.TwitterException;
 import com.twitter.sdk.android.core.TwitterSession;
 import com.twitter.sdk.android.core.identity.TwitterLoginButton;
@@ -25,7 +22,6 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         this.setTitle(getResources().getString(R.string.title_activity_login));
-        System.out.println("onCreate started");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
@@ -34,14 +30,12 @@ public class LoginActivity extends AppCompatActivity {
         mLoginButton.setCallback(new Callback<TwitterSession>() {
             @Override
             public void success(Result<TwitterSession> result) {
-                Toast.makeText(LoginActivity.this, "IT WORKS!", Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(getApplicationContext(), FeedActivity.class);
                 startActivity(intent);
             }
 
             @Override
             public void failure(TwitterException exception) {
-                Toast.makeText(LoginActivity.this, "IT FAILED!", Toast.LENGTH_SHORT).show();
             }
         });
 

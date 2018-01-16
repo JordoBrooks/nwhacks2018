@@ -20,5 +20,6 @@
 
     <!-- Feed -->
     <string name="title_activity_feed">FeedActivity</string>
+    <string name="map">Map</string>
 
 </resources>

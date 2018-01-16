@@ -6,9 +6,6 @@ import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
-import android.os.Parcelable;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
@@ -18,7 +15,6 @@ import android.widget.Toast;
 import com.google.android.gms.maps.model.LatLng;
 import com.twitter.sdk.android.core.TwitterApiClient;
 import com.twitter.sdk.android.core.TwitterCore;
-import com.twitter.sdk.android.core.models.Coordinates;
 import com.twitter.sdk.android.core.models.Search;
 import com.twitter.sdk.android.core.models.Tweet;
 import com.twitter.sdk.android.core.services.SearchService;
@@ -55,7 +51,7 @@ public class FeedActivity extends AppCompatActivity {
 
         if (getCurrentLocation()) {
             startAPIClient(currentLocation);
-        } else Toast.makeText(getApplicationContext(), "Can not find current location.", Toast.LENGTH_SHORT).show();
+        } else Toast.makeText(getApplicationContext(), "Cannot find current location.", Toast.LENGTH_SHORT).show();
     }
 
     private Boolean getCurrentLocation() {
@@ -104,7 +100,7 @@ public class FeedActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<Search> call, Throwable t) {
-                Toast.makeText(FeedActivity.this, "Can not find tweets near you", Toast.LENGTH_SHORT).show();
+                Toast.makeText(FeedActivity.this, "Could not find tweets near you.", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -114,7 +110,7 @@ public class FeedActivity extends AppCompatActivity {
         tweets = results.tweets;
 
         if (tweets.isEmpty()) {
-            Toast.makeText(FeedActivity.this, "No new tweets near you", Toast.LENGTH_SHORT).show();
+            Toast.makeText(FeedActivity.this, "No new tweets near you!", Toast.LENGTH_SHORT).show();
         } else {
             for (Tweet tweet : tweets) {
                 TweetView tweetView = new TweetView(FeedActivity.this, tweet);

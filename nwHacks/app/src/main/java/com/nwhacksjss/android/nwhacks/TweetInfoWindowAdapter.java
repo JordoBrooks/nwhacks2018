@@ -12,16 +12,9 @@ import com.twitter.sdk.android.core.TwitterCore;
 import com.twitter.sdk.android.core.TwitterException;
 import com.twitter.sdk.android.core.models.Tweet;
 import com.twitter.sdk.android.core.services.StatusesService;
-import com.twitter.sdk.android.tweetui.TweetUtils;
 import com.twitter.sdk.android.tweetui.TweetView;
 
 import retrofit2.Call;
-
-import static java.security.AccessController.getContext;
-
-/**
- * Created by jordan on 14/01/18.
- */
 
 public class TweetInfoWindowAdapter implements GoogleMap.InfoWindowAdapter {
 

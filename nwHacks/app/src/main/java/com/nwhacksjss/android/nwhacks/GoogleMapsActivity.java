@@ -8,15 +8,11 @@ import android.location.Location;
 import android.location.LocationManager;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.widget.Toast;
 
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -24,14 +20,9 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
 import com.nwhacksjss.android.nwhacks.Utils.PermissionUtils;
-import com.twitter.sdk.android.core.models.Tweet;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 public class GoogleMapsActivity extends AppCompatActivity
         implements
@@ -85,7 +76,6 @@ public class GoogleMapsActivity extends AppCompatActivity
      */
     @Override
     public void onMapReady(GoogleMap googleMap) {
-        Toast.makeText(getApplicationContext(), "IT WORKS!", Toast.LENGTH_SHORT).show();
 
         mMap = googleMap;
 
@@ -141,8 +131,6 @@ public class GoogleMapsActivity extends AppCompatActivity
 
     @Override
     public boolean onMyLocationButtonClick() {
-        Toast.makeText(this, "MyLocation button clicked", Toast.LENGTH_SHORT).show();
-
         return false;
     }
 
