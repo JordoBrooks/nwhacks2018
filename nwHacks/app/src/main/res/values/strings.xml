@@ -1,6 +1,7 @@
 <resources>
 
     <string name="app_name">Tweets \'Round the Corner</string>
+    <string name="short_app_name">TRtC</string>
     <string name="title_activity_login">Welcome!</string>
 
     <!-- Strings related to login -->
