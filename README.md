@@ -1,6 +1,6 @@
-## Tweets 'Round The World
+# Tweets 'Round The Corner
 
-Tweets 'Round The World shows tweets within 1 km of your current location.
+## Tweets 'Round The Corner shows tweets within 1 km of your current location.
 
 Log in with your Twitter account.
 
