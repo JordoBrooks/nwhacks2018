@@ -1,14 +1,17 @@
 package com.nwhacksjss.android.nwhacks;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
@@ -58,6 +61,30 @@ public class FeedActivity extends AppCompatActivity {
             startAPIClient(currentLocation);
         } else Toast.makeText(getApplicationContext(), "Cannot find current location.", Toast.LENGTH_SHORT).show();
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        // Registering an observer (mMessageReceiver) to receive Intents
+        // with actions named "updated-location".
+        LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver, new IntentFilter("updated-location"));
+        super.onResume();
+    }
+
+    @Override
+    protected void onStop() {
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mMessageReceiver);
+        super.onStop();
+    }
+
+    private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // Get extra data included in the Intent
+            String message = intent.getStringExtra("location");
+        }
+    };
 
     private Boolean getCurrentLocation() {
         try {
