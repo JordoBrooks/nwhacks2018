@@ -44,7 +44,7 @@ public class GoogleMapsActivity extends AppCompatActivity
 
     private GoogleMap.InfoWindowAdapter iwa;
 
-    public static HashMap<Marker, Long> idLookup;
+    public static HashMap<LatLng, Long> idLookup;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -111,7 +111,7 @@ public class GoogleMapsActivity extends AppCompatActivity
             Marker marker = mMap.addMarker(new MarkerOptions().position(coords).icon(BitmapDescriptorFactory.defaultMarker(203)));
 
             // Store id for future identification of tweet
-            idLookup.put(marker, id);
+            idLookup.put(coords, id);
         }
     }
 
