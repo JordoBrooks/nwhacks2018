@@ -1,9 +1,6 @@
 package com.nwhacksjss.android.nwhacks;
 
-import android.Manifest;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
@@ -21,27 +18,21 @@ public class LoginActivity extends AppCompatActivity {
 
     // UI references.
     private TwitterLoginButton mLoginButton;
-    private TwitterSession session;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         this.setTitle(getResources().getString(R.string.title_activity_login));
         super.onCreate(savedInstanceState);
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            // Permission to access the location is missing.
-            PermissionUtils.requestPermission(this, PermissionUtils.LOCATION_PERMISSION_REQUEST_CODE,
-                    Manifest.permission.ACCESS_FINE_LOCATION, true);
-        }
-
+        requestPermission();
 
         setContentView(R.layout.activity_login);
 
-        mLoginButton = (TwitterLoginButton) findViewById(R.id.login_button);
+        mLoginButton = findViewById(R.id.login_button);
 
         mLoginButton.setCallback(new Callback<TwitterSession>() {
             @Override
+            // TODO - Should getApplicationContext be replaced with login activity context?
             public void success(Result<TwitterSession> result) {
                 Intent intent = new Intent(getApplicationContext(), FeedActivity.class);
                 startActivity(intent);
@@ -52,6 +43,18 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
 
+    }
+
+    private void requestPermission() {
+        // Check if the user has allowed the app permission to access fine location
+        if (!PermissionUtils.isLocationPermissionGranted(this)) {
+            // Permission to access the location is missing.
+            if (PermissionUtils.shouldProvidePermissionRequestRationale(this)) {
+                PermissionUtils.requestPermissionsWithRationale(this, findViewById(R.id.activity_login));
+            } else {
+                PermissionUtils.requestPermission(this);
+            }
+        }
     }
 
     @Override
