@@ -16,6 +16,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.ScrollView;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.model.LatLng;
@@ -45,10 +47,17 @@ public class FeedActivity extends AppCompatActivity {
     private Long lastSinceId;
     private static Geocode currentLocation;
 
+    // UI
+    private ProgressBar progressBar;
+    private ScrollView contentFeed;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_feed);
+
+        progressBar = findViewById(R.id.progressBar);
+        contentFeed = findViewById(R.id.content_feed);
 
         tweetCoords = new ArrayList<>();
         tweets = new ArrayList<>();
@@ -57,9 +66,25 @@ public class FeedActivity extends AppCompatActivity {
 
         addMapButton();
 
-        if (getCurrentLocation()) {
+        currentLocation = getCurrentLocation();
+
+        if (currentLocation != null) {
+            showContentFeed();
             startAPIClient(currentLocation);
-        } else Toast.makeText(getApplicationContext(), "Cannot find current location.", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(getApplicationContext(), "Cannot find current location.", Toast.LENGTH_SHORT).show();
+            showAcquiringLocation();
+        }
+    }
+
+    private void showContentFeed() {
+        contentFeed.setVisibility(View.VISIBLE);
+        progressBar.setVisibility(View.INVISIBLE);
+    }
+
+    private void showAcquiringLocation() {
+        contentFeed.setVisibility(View.INVISIBLE);
+        progressBar.setVisibility(View.VISIBLE);
     }
 
     @Override
@@ -86,7 +111,7 @@ public class FeedActivity extends AppCompatActivity {
         }
     };
 
-    private Boolean getCurrentLocation() {
+    private Geocode getCurrentLocation() {
         try {
             LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
             String provider = locationManager.getBestProvider(new Criteria(), false);
@@ -94,14 +119,13 @@ public class FeedActivity extends AppCompatActivity {
                 Location location = locationManager.getLastKnownLocation(provider);
                 double lat = location.getLatitude();
                 double lon = location.getLongitude();
-                currentLocation = new Geocode(lat, lon, 1, Geocode.Distance.KILOMETERS);
-                return true;
+                Geocode loc = new Geocode(lat, lon, 1, Geocode.Distance.KILOMETERS);
+                return loc;
             }
         } catch (SecurityException e) {
-            Toast.makeText(getApplicationContext(), "Location access is not enabled.", Toast.LENGTH_SHORT).show();
+            return null;
         }
-
-        return false;
+        return null;
     }
 
     private void addMapButton() {
