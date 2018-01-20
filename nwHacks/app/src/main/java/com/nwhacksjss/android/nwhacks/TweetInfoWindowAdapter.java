@@ -28,7 +28,8 @@ public class TweetInfoWindowAdapter implements GoogleMap.InfoWindowAdapter {
 
     @Override
     public View getInfoWindow(Marker marker) {
-        long id = GoogleMapsActivity.idLookup.get(marker);
+        long id = GoogleMapsActivity.idLookup.get(marker.getPosition());
+
 
         TwitterApiClient twitterApiClient = TwitterCore.getInstance().getApiClient();
         StatusesService statusesService = twitterApiClient.getStatusesService();
