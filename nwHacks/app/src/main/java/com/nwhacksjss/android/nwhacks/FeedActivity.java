@@ -61,7 +61,6 @@ public class FeedActivity extends AppCompatActivity {
             isBoundToLocationUpdates = true;
             Log.i(TAG, "Requesting location updates from LocationUpdateService.");
             locationUpdateService.requestLocationUpdates();
-            isBoundToLocationUpdates = true;
         }
 
         @Override
@@ -84,6 +83,8 @@ public class FeedActivity extends AppCompatActivity {
     private static Location loc;
     private static Geocode currentLocation;
 
+    private static boolean firstRun = true; // TODO - this is for debugging...remove eventually
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -105,10 +106,6 @@ public class FeedActivity extends AppCompatActivity {
         addMapButton();
 
         initContentFeed();
-
-//        if (getCurrentLocation()) {
-//            startAPIClient(currentLocation);
-//        } else Toast.makeText(getApplicationContext(), "Cannot find current location.", Toast.LENGTH_SHORT).show();
     }
 
     private void initContentFeed() {
@@ -256,6 +253,7 @@ public class FeedActivity extends AppCompatActivity {
         if (tweets.isEmpty()) {
             Toast.makeText(FeedActivity.this, "No new tweets near you!", Toast.LENGTH_SHORT).show();
         } else {
+            linearLayout.removeAllViews();
             for (Tweet tweet : tweets) {
                 TweetView tweetView = new TweetView(FeedActivity.this, tweet);
                 linearLayout.addView(tweetView);
@@ -278,6 +276,7 @@ public class FeedActivity extends AppCompatActivity {
                 }
 
             }
+            showContentFeed();
         }
 
     }
@@ -291,8 +290,20 @@ public class FeedActivity extends AppCompatActivity {
             loc = intent.getParcelableExtra(LocationUpdateService.UPDATED_LOCATION);
             currentLocation = convertLocationToGeocode(loc, 1);
             Toast.makeText(FeedActivity.this, "Received new location update.", Toast.LENGTH_SHORT).show();
-            startAPIClient(currentLocation);
-            showContentFeed();
+            if (firstRun) { // TODO - This is for debugging...remove eventually
+                startAPIClient(currentLocation);
+                firstRun = false;
+            } else {
+                if (significantDistanceMoved()) {
+                    startAPIClient(currentLocation);
+                } else {
+                    Toast.makeText(FeedActivity.this, "Not updating content feed.", Toast.LENGTH_SHORT).show();
+                }
+            }
         }
+    }
+
+    private boolean significantDistanceMoved() {
+        return false;
     }
 }
