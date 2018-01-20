@@ -21,7 +21,8 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.nwhacksjss.android.nwhacks.Utils.PermissionUtils;
+import com.nwhacksjss.android.nwhacks.adapters.TweetInfoWindowAdapter;
+import com.nwhacksjss.android.nwhacks.utils.PermissionUtils;
 
 import java.util.HashMap;
 

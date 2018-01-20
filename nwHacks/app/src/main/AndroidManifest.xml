@@ -49,6 +49,10 @@
             android:label="@string/title_activity_feed"
             android:theme="@style/AppTheme.NoActionBar"/>
 
+        <service
+            android:name=".services.LocationUpdateService"
+            android:enabled="true"
+            android:exported="true"/>
     </application>
 
 </manifest>

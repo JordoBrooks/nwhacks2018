@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.nwhacksjss.android.nwhacks.Utils;
+package com.nwhacksjss.android.nwhacks.utils;
 
 import android.Manifest;
 import android.app.Activity;
@@ -99,6 +99,18 @@ public abstract class PermissionUtils {
         ActivityCompat.requestPermissions(activity,
                 new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                 LOCATION_PERMISSION_REQUEST_CODE);
+    }
+
+    public static void fullRequestPermissionProcess(Activity activity, View view) {
+        // Check if the user has allowed the app permission to access fine location
+        if (!isLocationPermissionGranted(activity)) {
+            // Permission to access the location is missing.
+            if (shouldProvidePermissionRequestRationale(activity)) {
+                requestPermissionsWithRationale(activity, view);
+            } else {
+                requestPermission(activity);
+            }
+        }
     }
 
     /**

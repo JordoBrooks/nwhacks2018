@@ -2,6 +2,7 @@
 <android.support.design.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/activity_feed"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="com.nwhacksjss.android.nwhacks.FeedActivity">
@@ -39,7 +40,16 @@
 
         </android.support.design.widget.AppBarLayout>
 
-        <include layout="@layout/content_feed" />
+        <include layout="@layout/content_feed"
+            android:id="@+id/content_feed"/>
+
+        <ProgressBar
+            android:id="@+id/progress_bar_content_feed"
+            style="?android:attr/progressBarStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="invisible"/>
+
     </LinearLayout>
 
 </android.support.design.widget.CoordinatorLayout>
