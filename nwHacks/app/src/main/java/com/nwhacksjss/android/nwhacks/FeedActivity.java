@@ -14,8 +14,10 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.Switch;
 import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -75,6 +77,7 @@ public class FeedActivity extends AppCompatActivity {
     private View contentFeed;
     private LinearLayout linearLayout;
     private ProgressBar progressBar;
+    private Switch trackMeSwitch;
 
     private HashMap<Long, LatLng> tweetIdCoordinates= new HashMap<>();
     private List<Tweet> tweets;
@@ -94,6 +97,19 @@ public class FeedActivity extends AppCompatActivity {
         contentFeed = findViewById(R.id.content_feed);
         linearLayout = findViewById(R.id.feed_layout);
         progressBar = findViewById(R.id.progress_bar_content_feed);
+        trackMeSwitch = findViewById(R.id.track_me_mode);
+
+        trackMeSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    // Track me mode is enabled
+                    LocationUpdateService.setTrackMeMode(true);
+                } else {
+                    // Track me mode is disabled
+                    LocationUpdateService.setTrackMeMode(false);
+                }
+            }
+        });
 
         PermissionUtils.fullRequestPermissionProcess(this, view);
 
@@ -178,41 +194,6 @@ public class FeedActivity extends AppCompatActivity {
         return new Geocode(lat, lon, radius, Geocode.Distance.KILOMETERS);
     }
 
-//    private Boolean getCurrentLocation() {
-//        if (ActivityCompat.checkSelfPermission(this,
-//                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-//            // Permission to access the location is missing.
-//            PermissionUtils.requestPermission(this);
-//        } else {
-//            mFusedLocationClient.getLastLocation()
-//                    .addOnSuccessListener(this, new OnSuccessListener<Location>() {
-//                @Override
-//                public void onSuccess(Location location) {
-//                    Toast.makeText(getApplicationContext(), "Location obtained.",
-//                            Toast.LENGTH_LONG).show();
-//                }
-//            });
-//        }
-//
-//        return false;
-//
-////        try {
-////            LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-////            String provider = locationManager.getBestProvider(new Criteria(), false);
-////            if (provider != null) {
-////                Location location = locationManager.getLastKnownLocation(provider);
-////                double lat = location.getLatitude();
-////                double lon = location.getLongitude();
-////                currentLocation = new Geocode(lat, lon, 1, Geocode.Distance.KILOMETERS);
-////                return true;
-////            }
-////        } catch (SecurityException e) {
-////            Toast.makeText(getApplicationContext(), "Location access is not enabled.", Toast.LENGTH_SHORT).show();
-////        }
-////
-////        return false;
-//    }
-
     private void addMapButton() {
         Button goToMap = findViewById(R.id.button_id);
         goToMap.setOnClickListener(new View.OnClickListener() {
@@ -289,15 +270,15 @@ public class FeedActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             loc = intent.getParcelableExtra(LocationUpdateService.UPDATED_LOCATION);
             currentLocation = convertLocationToGeocode(loc, 1);
-            Toast.makeText(FeedActivity.this, "Received new location update.", Toast.LENGTH_SHORT).show();
             if (firstRun) { // TODO - This is for debugging...remove eventually
+                Toast.makeText(FeedActivity.this, "Received new location update.", Toast.LENGTH_SHORT).show();
                 startAPIClient(currentLocation);
                 firstRun = false;
             } else {
                 if (significantDistanceMoved()) {
                     startAPIClient(currentLocation);
                 } else {
-                    Toast.makeText(FeedActivity.this, "Not updating content feed.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(FeedActivity.this, "New location but not updating content feed.", Toast.LENGTH_SHORT).show();
                 }
             }
         }

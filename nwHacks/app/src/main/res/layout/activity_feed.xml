@@ -15,7 +15,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:theme="@style/AppTheme.AppBarOverlay">
-    
+
             <android.support.v7.widget.Toolbar
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
@@ -37,6 +37,13 @@
                     android:text="@string/map"
                     android:textSize="20sp"/>
             </android.support.v7.widget.Toolbar>
+
+            <Switch
+                android:id="@+id/track_me_mode"
+                android:layout_width="124dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Track me" />
 
         </android.support.design.widget.AppBarLayout>
 
