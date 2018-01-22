@@ -224,7 +224,7 @@ public class TweetUpdateService extends Service {
 
         // We got here because the user decided to remove location updates from the notification.
         if (startedFromNotification) {
-            removeLocationUpdates();
+            removeTweetUpdates();
             stopSelf();
         }
         // Tells the system to not try to recreate the service after it has been killed.
@@ -237,7 +237,7 @@ public class TweetUpdateService extends Service {
         changingConfiguration = true;
     }
 
-    private void removeLocationUpdates() {
+    private void removeTweetUpdates() {
         Log.i(TAG, "Removing location updates");
         try {
             fusedLocationClient.removeLocationUpdates(locationCallback);
@@ -292,13 +292,13 @@ public class TweetUpdateService extends Service {
             Log.i(TAG, "Starting foreground service");
             startForeground(NOTIFICATION_ID, getNotification());
         } else {
-            removeLocationUpdates();
+            removeTweetUpdates();
             stopSelf();
         }
         return true; // Ensures onRebind() is called when a client re-binds.
     }
 
-    public void requestLocationUpdates() {
+    public void requestTweetUpdates() {
         Log.i(TAG, "Requesting location updates");
         startService(new Intent(getApplicationContext(), TweetUpdateService.class));
         try {
@@ -325,7 +325,7 @@ public class TweetUpdateService extends Service {
     private Notification getNotification() {
         Intent intent = new Intent(this, TweetUpdateService.class);
 
-        CharSequence text = "You are being tracked!";
+        CharSequence text = "Looking for tweets...";
 
         // Extra to help us figure out if we arrived in onStartCommand via the notification or not.
         intent.putExtra(STARTED_FROM_NOTIFICATION, true);
@@ -344,7 +344,7 @@ public class TweetUpdateService extends Service {
                 .addAction(R.drawable.launcher_icon, "Stop tracking me",
                         servicePendingIntent)
                 .setContentText(text)
-                .setContentTitle("Notification")
+                .setContentTitle("Tweet Tracker")
                 .setOngoing(true)
                 .setPriority(Notification.PRIORITY_HIGH)
                 .setSmallIcon(R.drawable.launcher_icon)
@@ -381,7 +381,7 @@ public class TweetUpdateService extends Service {
                 .addAction(R.drawable.launcher_icon, "Stop tracking me",
                         servicePendingIntent)
                 .setContentText(text)
-                .setContentTitle("Notification")
+                .setContentTitle("Tweet Tracker")
                 .setOngoing(true)
                 .setPriority(Notification.PRIORITY_HIGH)
                 .setSmallIcon(R.drawable.launcher_icon)

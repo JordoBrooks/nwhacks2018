@@ -1,16 +1,24 @@
 package com.nwhacksjss.android.nwhacks;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationManager;
+import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -19,9 +27,10 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.gson.Gson;
 import com.nwhacksjss.android.nwhacks.adapters.TweetInfoWindowAdapter;
+import com.nwhacksjss.android.nwhacks.services.TweetUpdateService;
 import com.nwhacksjss.android.nwhacks.utils.PermissionUtils;
 import com.twitter.sdk.android.core.models.Tweet;
 
@@ -38,15 +47,45 @@ public class GoogleMapsActivity extends AppCompatActivity
 
     // Google Maps API key:  AIzaSyBFPtuV05B6cukiW2K-BcMTwnQxeXc7FYs
 
+    private static final String TAG = GoogleMapsActivity.class.getSimpleName();
+
     /**
      * Flag indicating whether a requested permission has been denied after returning in
-     * {@link #onRequestPermissionsResult(int, String[], int[])}.
+     * PermissionUtils.onRequestPermissionsResult(int, String[], int[]).
      */
-    private boolean mPermissionDenied = false;
+    private boolean permissionDenied = false;
 
-    private GoogleMap mMap;
+    private GoogleMap map;
 
     private GoogleMap.InfoWindowAdapter iwa;
+
+    // The receiver used to get tweet updates from LocationUpdatesService
+    private GoogleMapsActivity.TweetUpdateReceiver tweetUpdateReceiver;
+
+    // A reference to the service used to get location updates.
+    private TweetUpdateService tweetUpdateService = null;
+
+    // Tracks the bound state of the service.
+    private boolean isBoundToTweetUpdates = false;
+
+    // Monitors the state of the connection to the service.
+    private final ServiceConnection tweetUpdateServiceConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            TweetUpdateService.LocalBinder binder = (TweetUpdateService.LocalBinder) service;
+            tweetUpdateService = binder.getService();
+            isBoundToTweetUpdates = true;
+            Log.i(TAG, "Requesting tweet updates from TweetUpdateService.");
+            tweetUpdateService.requestTweetUpdates();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            tweetUpdateService = null;
+            isBoundToTweetUpdates = false;
+        }
+    };
 
     public static HashMap<LatLng, Long> idLookup = new HashMap<>();
 
@@ -65,6 +104,8 @@ public class GoogleMapsActivity extends AppCompatActivity
         mapFragment.getMapAsync(this);
 
         iwa = new TweetInfoWindowAdapter(GoogleMapsActivity.this);
+
+        tweetUpdateReceiver = new GoogleMapsActivity.TweetUpdateReceiver();
     }
 
     /**
@@ -79,43 +120,88 @@ public class GoogleMapsActivity extends AppCompatActivity
     @Override
     public void onMapReady(GoogleMap googleMap) {
 
-        mMap = googleMap;
+        map = googleMap;
 
-        mMap.setOnMyLocationButtonClickListener(this);
-        mMap.setOnMyLocationClickListener(this);
+        map.setOnMyLocationButtonClickListener(this);
+        map.setOnMyLocationClickListener(this);
 
-        mMap.setInfoWindowAdapter(iwa);
+        map.setInfoWindowAdapter(iwa);
 
         enableMyLocation();
+
         try {
             LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
             Location location = locationManager.getLastKnownLocation(locationManager.getBestProvider(new Criteria(), false));
             double lat = location.getLatitude();
             double lon = location.getLongitude();
-            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lat, lon), 15));
+            map.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lat, lon), 15));
         } catch (SecurityException e) {
             Toast.makeText(getApplicationContext(), "Location access is not enabled.", Toast.LENGTH_SHORT).show();
         }
 
-        plotTweets();
+        if (!PermissionUtils.isLocationPermissionGranted(this)) {
+            PermissionUtils.requestPermission(this);
+        } else {
+            // Bind to the service
+            Log.i(TAG, "Binding TweetUpdateService.");
+            bindService(new Intent(this, TweetUpdateService.class), tweetUpdateServiceConnection,
+                    Context.BIND_AUTO_CREATE);
+        }
 
-        // Add a marker in Sydney and move the camera
-//        LatLng sydney = new LatLng(-34, 151);
-//        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
-//        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
-//
-//        getDeviceLocation();
+        plotTweets();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        Log.i(TAG, "Registering TweetUpdateReceiver.");
+        LocalBroadcastManager.getInstance(this).registerReceiver(tweetUpdateReceiver,
+                new IntentFilter(TweetUpdateService.ACTION_BROADCAST));
+    }
+
+    @Override
+    protected void onPause() {
+        Log.i(TAG, "Unregistering TweetUpdateReceiver.");
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(tweetUpdateReceiver);
+
+        super.onPause();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (isBoundToTweetUpdates) {
+            // TODO - This method was borrowed from Google... figure out what's happening here re: foreground
+            // Unbind from the service. This signals to the service that this activity is no longer
+            // in the foreground, and the service can respond by promoting itself to a foreground
+            // service.
+            Log.i(TAG, "Unbinding TweetUpdateService.");
+            unbindService(tweetUpdateServiceConnection);
+            isBoundToTweetUpdates = false;
+        }
     }
 
     private void plotTweets() {
-        HashMap<Long, LatLng> tweetMap = (HashMap<Long, LatLng>) getIntent().getSerializableExtra("tweet_map");
+        map.clear();
+        for (Tweet tweet : tweets) {
+            if (tweet.coordinates != null || tweet.place != null) {
+                Double lat;
+                Double lon;
+                if (tweet.coordinates != null) {
+                    lat = tweet.coordinates.getLatitude();
+                    lon = tweet.coordinates.getLongitude();
+                } else {
+                    lat = tweet.place.boundingBox.coordinates.get(0).get(0).get(1);
+                    lon = tweet.place.boundingBox.coordinates.get(0).get(0).get(0);
+                }
 
-        for (Long id : tweetMap.keySet()) {
-            LatLng coords = tweetMap.get(id);
-            Marker marker = mMap.addMarker(new MarkerOptions().position(coords).icon(BitmapDescriptorFactory.defaultMarker(203)));
+                LatLng coords = new LatLng(lat, lon);
+                map.addMarker(new MarkerOptions().position(coords).icon(BitmapDescriptorFactory.defaultMarker(203)));
 
-            // Store id for future identification of tweet
-            idLookup.put(coords, id);
+                // Store id for future identification of tweet
+                idLookup.put(coords, tweet.getId());
+            }
         }
     }
 
@@ -128,9 +214,9 @@ public class GoogleMapsActivity extends AppCompatActivity
             // Permission to access the location is missing.
             PermissionUtils.requestPermission(this, PermissionUtils.LOCATION_PERMISSION_REQUEST_CODE,
                     Manifest.permission.ACCESS_FINE_LOCATION, true);
-        } else if (mMap != null) {
+        } else if (map != null) {
             // Access to the location has been granted to the app.
-            mMap.setMyLocationEnabled(true);
+            map.setMyLocationEnabled(true);
         }
     }
 
@@ -157,17 +243,17 @@ public class GoogleMapsActivity extends AppCompatActivity
             enableMyLocation();
         } else {
             // Display the missing permission error dialog when the fragments resume.
-            mPermissionDenied = true;
+            permissionDenied = true;
         }
     }
 
     @Override
     protected void onResumeFragments() {
         super.onResumeFragments();
-        if (mPermissionDenied) {
+        if (permissionDenied) {
             // Permission was not granted, display error dialog.
             showMissingPermissionError();
-            mPermissionDenied = false;
+            permissionDenied = false;
         }
     }
 
@@ -177,5 +263,22 @@ public class GoogleMapsActivity extends AppCompatActivity
     private void showMissingPermissionError() {
         PermissionUtils.PermissionDeniedDialog
                 .newInstance(true).show(getSupportFragmentManager(), "dialog");
+    }
+
+    /**
+     * Receiver for broadcasts sent by TweetUpdateService.
+     */
+    private class TweetUpdateReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            tweets.clear();
+            Gson gson = new Gson();
+            ArrayList<String> tweetsAsStrings = intent.getStringArrayListExtra(TweetUpdateService.UPDATED_TWEETS);
+            for (String tweetString : tweetsAsStrings) {
+                Tweet tweet = gson.fromJson(tweetString, Tweet.class);
+                tweets.add(tweet);
+            }
+            plotTweets();
+        }
     }
 }

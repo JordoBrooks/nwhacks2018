@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.location.Location;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
@@ -18,52 +17,45 @@ import android.widget.CompoundButton;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.Switch;
-import android.widget.Toast;
 
-import com.google.android.gms.maps.model.LatLng;
 import com.google.gson.Gson;
 import com.nwhacksjss.android.nwhacks.services.TweetUpdateService;
-import com.nwhacksjss.android.nwhacks.utils.LocationUtils;
 import com.nwhacksjss.android.nwhacks.utils.PermissionUtils;
-import com.twitter.sdk.android.core.models.Search;
 import com.twitter.sdk.android.core.models.Tweet;
 import com.twitter.sdk.android.tweetui.TweetView;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-
-import retrofit2.Response;
 
 public class FeedActivity extends AppCompatActivity {
 
     private static final String TAG = FeedActivity.class.getSimpleName();
 
-    // The receiver used to get location updates from LocationUpdatesService
+    // The receiver used to get tweet updates from LocationUpdatesService
     private TweetUpdateReceiver tweetUpdateReceiver;
 
     // A reference to the service used to get location updates.
     private TweetUpdateService tweetUpdateService = null;
 
     // Tracks the bound state of the service.
-    private boolean isBoundToLocationUpdates = false;
+    private boolean isBoundToTweetUpdates = false;
 
     // Monitors the state of the connection to the service.
-    private final ServiceConnection locationServiceConnection = new ServiceConnection() {
+    private final ServiceConnection tweetUpdateServiceConnection = new ServiceConnection() {
 
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             TweetUpdateService.LocalBinder binder = (TweetUpdateService.LocalBinder) service;
             tweetUpdateService = binder.getService();
-            isBoundToLocationUpdates = true;
-            Log.i(TAG, "Requesting location updates from TweetUpdateService.");
-            tweetUpdateService.requestLocationUpdates();
+            isBoundToTweetUpdates = true;
+            Log.i(TAG, "Requesting tweet updates from TweetUpdateService.");
+            tweetUpdateService.requestTweetUpdates();
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
             tweetUpdateService = null;
-            isBoundToLocationUpdates = false;
+            isBoundToTweetUpdates = false;
         }
     };
 
@@ -74,7 +66,6 @@ public class FeedActivity extends AppCompatActivity {
     private ProgressBar progressBar;
     private Switch trackMeSwitch;
 
-    private HashMap<Long, LatLng> tweetIdCoordinates= new HashMap<>();
     private static List<Tweet> tweets = new ArrayList<>();
 
     private static boolean firstRun = true; // TODO - this is for debugging...remove eventually
@@ -104,7 +95,7 @@ public class FeedActivity extends AppCompatActivity {
 
         PermissionUtils.fullRequestPermissionProcess(this, view);
 
-        tweetUpdateReceiver = new TweetUpdateReceiver();
+        tweetUpdateReceiver = new FeedActivity.TweetUpdateReceiver();
 
         addMapButton();
 
@@ -139,7 +130,7 @@ public class FeedActivity extends AppCompatActivity {
         } else {
             // Bind to the service
             Log.i(TAG, "Binding TweetUpdateService.");
-            bindService(new Intent(this, TweetUpdateService.class), locationServiceConnection,
+            bindService(new Intent(this, TweetUpdateService.class), tweetUpdateServiceConnection,
                     Context.BIND_AUTO_CREATE);
         }
     }
@@ -164,14 +155,14 @@ public class FeedActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
-        if (isBoundToLocationUpdates) {
+        if (isBoundToTweetUpdates) {
             // TODO - This method was borrowed from Google... figure out what's happening here re: foreground
             // Unbind from the service. This signals to the service that this activity is no longer
             // in the foreground, and the service can respond by promoting itself to a foreground
             // service.
             Log.i(TAG, "Unbinding TweetUpdateService.");
-            unbindService(locationServiceConnection);
-            isBoundToLocationUpdates = false;
+            unbindService(tweetUpdateServiceConnection);
+            isBoundToTweetUpdates = false;
         }
     }
 
@@ -181,19 +172,18 @@ public class FeedActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 Intent mapIntent = new Intent(getApplicationContext(), GoogleMapsActivity.class);
-                mapIntent.putExtra("tweet_map", tweetIdCoordinates);
                 startActivity(mapIntent);
             }
         });
 
     }
 
-    private void parseSearchResponse(Response<Search> response) {
-        Search results = response.body();
-        tweets = results.tweets;
-
-
-
+    private void repopulateFeed() {
+        linearLayout.removeAllViews();
+        for (Tweet tweet : tweets) {
+            TweetView tweetView = new TweetView(FeedActivity.this, tweet);
+            linearLayout.addView(tweetView);
+        }
     }
 
     /**
@@ -210,30 +200,7 @@ public class FeedActivity extends AppCompatActivity {
                 tweets.add(tweet);
             }
             repopulateFeed();
-        }
-    }
-
-    private void repopulateFeed() {
-        linearLayout.removeAllViews();
-        for (Tweet tweet : tweets) {
-            TweetView tweetView = new TweetView(FeedActivity.this, tweet);
-            linearLayout.addView(tweetView);
-//                if (tweet.coordinates != null || tweet.place != null) {
-//                    Double lat;
-//                    Double lon;
-//                    if (tweet.coordinates != null) {
-//                        lat = tweet.coordinates.getLatitude();
-//                        lon = tweet.coordinates.getLongitude();
-//                    } else {
-//
-//                        lon = tweet.place.boundingBox.coordinates.get(0).get(0).get(0);
-//                        lat = tweet.place.boundingBox.coordinates.get(0).get(0).get(1);
-//                    }
-//
-//                    LatLng coords = new LatLng(lat, lon);
-//
-//                    tweetIdCoordinates.put(tweet.id, coords);
-//                }
+            showContentFeed();
         }
     }
 }

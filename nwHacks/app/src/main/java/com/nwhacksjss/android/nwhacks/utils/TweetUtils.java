@@ -6,7 +6,7 @@ import java.util.List;
 
 public abstract class TweetUtils {
     public static boolean tweetSetDiffers(List<Tweet> tweets, List<Tweet> newTweets) {
-        return false;
+        return true;
     }
 
     public static int findNumNewTweets(List<Tweet> tweets, List<Tweet> newTweets) {
