@@ -20,24 +20,19 @@ import android.widget.ProgressBar;
 import android.widget.Switch;
 import android.widget.Toast;
 
-import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.maps.model.LatLng;
-import com.nwhacksjss.android.nwhacks.services.LocationUpdateService;
+import com.google.gson.Gson;
+import com.nwhacksjss.android.nwhacks.services.TweetUpdateService;
+import com.nwhacksjss.android.nwhacks.utils.LocationUtils;
 import com.nwhacksjss.android.nwhacks.utils.PermissionUtils;
-import com.twitter.sdk.android.core.TwitterApiClient;
-import com.twitter.sdk.android.core.TwitterCore;
 import com.twitter.sdk.android.core.models.Search;
 import com.twitter.sdk.android.core.models.Tweet;
-import com.twitter.sdk.android.core.services.SearchService;
-import com.twitter.sdk.android.core.services.params.Geocode;
 import com.twitter.sdk.android.tweetui.TweetView;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import retrofit2.Call;
-import retrofit2.Callback;
 import retrofit2.Response;
 
 public class FeedActivity extends AppCompatActivity {
@@ -45,10 +40,10 @@ public class FeedActivity extends AppCompatActivity {
     private static final String TAG = FeedActivity.class.getSimpleName();
 
     // The receiver used to get location updates from LocationUpdatesService
-    private LocationUpdateReceiver locationUpdateReceiver;
+    private TweetUpdateReceiver tweetUpdateReceiver;
 
     // A reference to the service used to get location updates.
-    private LocationUpdateService locationUpdateService = null;
+    private TweetUpdateService tweetUpdateService = null;
 
     // Tracks the bound state of the service.
     private boolean isBoundToLocationUpdates = false;
@@ -58,16 +53,16 @@ public class FeedActivity extends AppCompatActivity {
 
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            LocationUpdateService.LocalBinder binder = (LocationUpdateService.LocalBinder) service;
-            locationUpdateService = binder.getService();
+            TweetUpdateService.LocalBinder binder = (TweetUpdateService.LocalBinder) service;
+            tweetUpdateService = binder.getService();
             isBoundToLocationUpdates = true;
-            Log.i(TAG, "Requesting location updates from LocationUpdateService.");
-            locationUpdateService.requestLocationUpdates();
+            Log.i(TAG, "Requesting location updates from TweetUpdateService.");
+            tweetUpdateService.requestLocationUpdates();
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
-            locationUpdateService = null;
+            tweetUpdateService = null;
             isBoundToLocationUpdates = false;
         }
     };
@@ -80,11 +75,7 @@ public class FeedActivity extends AppCompatActivity {
     private Switch trackMeSwitch;
 
     private HashMap<Long, LatLng> tweetIdCoordinates= new HashMap<>();
-    private List<Tweet> tweets;
-    private ArrayList<LatLng> tweetCoords;
-    private Long lastSinceId;
-    private static Location loc;
-    private static Geocode currentLocation;
+    private static List<Tweet> tweets = new ArrayList<>();
 
     private static boolean firstRun = true; // TODO - this is for debugging...remove eventually
 
@@ -103,21 +94,17 @@ public class FeedActivity extends AppCompatActivity {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
                     // Track me mode is enabled
-                    LocationUpdateService.setTrackMeMode(true);
+                    TweetUpdateService.setTrackMeMode(true);
                 } else {
                     // Track me mode is disabled
-                    LocationUpdateService.setTrackMeMode(false);
+                    TweetUpdateService.setTrackMeMode(false);
                 }
             }
         });
 
         PermissionUtils.fullRequestPermissionProcess(this, view);
 
-        locationUpdateReceiver = new LocationUpdateReceiver();
-
-        tweetCoords = new ArrayList<>();
-        tweets = new ArrayList<>();
-        lastSinceId = 951701941301624832l; // TODO: generate new sinceId for each instance
+        tweetUpdateReceiver = new TweetUpdateReceiver();
 
         addMapButton();
 
@@ -125,9 +112,9 @@ public class FeedActivity extends AppCompatActivity {
     }
 
     private void initContentFeed() {
-        if (currentLocation != null) {
+        if (tweets.size() > 0) {
+            repopulateFeed();
             showContentFeed();
-            startAPIClient(currentLocation);
         } else {
             showLoadingSpinner();
         }
@@ -151,8 +138,8 @@ public class FeedActivity extends AppCompatActivity {
             PermissionUtils.requestPermission(this);
         } else {
             // Bind to the service
-            Log.i(TAG, "Binding LocationUpdateService.");
-            bindService(new Intent(this, LocationUpdateService.class), locationServiceConnection,
+            Log.i(TAG, "Binding TweetUpdateService.");
+            bindService(new Intent(this, TweetUpdateService.class), locationServiceConnection,
                     Context.BIND_AUTO_CREATE);
         }
     }
@@ -161,15 +148,15 @@ public class FeedActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
-        Log.i(TAG, "Registering LocationUpdateReceiver.");
-        LocalBroadcastManager.getInstance(this).registerReceiver(locationUpdateReceiver,
-                new IntentFilter(LocationUpdateService.ACTION_BROADCAST));
+        Log.i(TAG, "Registering TweetUpdateReceiver.");
+        LocalBroadcastManager.getInstance(this).registerReceiver(tweetUpdateReceiver,
+                new IntentFilter(TweetUpdateService.ACTION_BROADCAST));
     }
 
     @Override
     protected void onPause() {
-        Log.i(TAG, "Unregistering LocationUpdateReceiver.");
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(locationUpdateReceiver);
+        Log.i(TAG, "Unregistering TweetUpdateReceiver.");
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(tweetUpdateReceiver);
 
         super.onPause();
     }
@@ -182,16 +169,10 @@ public class FeedActivity extends AppCompatActivity {
             // Unbind from the service. This signals to the service that this activity is no longer
             // in the foreground, and the service can respond by promoting itself to a foreground
             // service.
-            Log.i(TAG, "Unbinding LocationUpdateService.");
+            Log.i(TAG, "Unbinding TweetUpdateService.");
             unbindService(locationServiceConnection);
             isBoundToLocationUpdates = false;
         }
-    }
-
-    private Geocode convertLocationToGeocode(Location location, int radius) {
-        double lat = location.getLatitude();
-        double lon = location.getLongitude();
-        return new Geocode(lat, lon, radius, Geocode.Distance.KILOMETERS);
     }
 
     private void addMapButton() {
@@ -207,84 +188,52 @@ public class FeedActivity extends AppCompatActivity {
 
     }
 
-    private void startAPIClient(Geocode currentLocation) {
-        TwitterCore twitterCore = TwitterCore.getInstance();
-        TwitterApiClient client = twitterCore.getApiClient();
-        final SearchService searchService = client.getSearchService();
-
-        Call<Search> secondCall = searchService.tweets("", FeedActivity.currentLocation, null, null, null, 10, null, lastSinceId, null, null);
-
-        secondCall.enqueue(new Callback<Search>() {
-            @Override
-            public void onResponse(Call<Search> call, Response<Search> response) {
-                parseSearchResponse(response);
-            }
-
-            @Override
-            public void onFailure(Call<Search> call, Throwable t) {
-                Toast.makeText(FeedActivity.this, "Could not find tweets near you.", Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
     private void parseSearchResponse(Response<Search> response) {
         Search results = response.body();
         tweets = results.tweets;
 
-        if (tweets.isEmpty()) {
-            Toast.makeText(FeedActivity.this, "No new tweets near you!", Toast.LENGTH_SHORT).show();
-        } else {
-            linearLayout.removeAllViews();
-            for (Tweet tweet : tweets) {
-                TweetView tweetView = new TweetView(FeedActivity.this, tweet);
-                linearLayout.addView(tweetView);
 
-                if (tweet.coordinates != null || tweet.place != null) {
-                    Double lat;
-                    Double lon;
-                    if (tweet.coordinates != null) {
-                        lat = tweet.coordinates.getLatitude();
-                        lon = tweet.coordinates.getLongitude();
-                    } else {
-
-                        lon = tweet.place.boundingBox.coordinates.get(0).get(0).get(0);
-                        lat = tweet.place.boundingBox.coordinates.get(0).get(0).get(1);
-                    }
-
-                    LatLng coords = new LatLng(lat, lon);
-
-                    tweetIdCoordinates.put(tweet.id, coords);
-                }
-
-            }
-            showContentFeed();
-        }
 
     }
 
     /**
-     * Receiver for broadcasts sent by LocationUpdateService.
+     * Receiver for broadcasts sent by TweetUpdateService.
      */
-    private class LocationUpdateReceiver extends BroadcastReceiver {
+    private class TweetUpdateReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            loc = intent.getParcelableExtra(LocationUpdateService.UPDATED_LOCATION);
-            currentLocation = convertLocationToGeocode(loc, 1);
-            if (firstRun) { // TODO - This is for debugging...remove eventually
-                Toast.makeText(FeedActivity.this, "Received new location update.", Toast.LENGTH_SHORT).show();
-                startAPIClient(currentLocation);
-                firstRun = false;
-            } else {
-                if (significantDistanceMoved()) {
-                    startAPIClient(currentLocation);
-                } else {
-                    Toast.makeText(FeedActivity.this, "New location but not updating content feed.", Toast.LENGTH_SHORT).show();
-                }
+            tweets.clear();
+            Gson gson = new Gson();
+            ArrayList<String> tweetsAsStrings = intent.getStringArrayListExtra(TweetUpdateService.UPDATED_TWEETS);
+            for (String tweetString : tweetsAsStrings) {
+                Tweet tweet = gson.fromJson(tweetString, Tweet.class);
+                tweets.add(tweet);
             }
+            repopulateFeed();
         }
     }
 
-    private boolean significantDistanceMoved() {
-        return false;
+    private void repopulateFeed() {
+        linearLayout.removeAllViews();
+        for (Tweet tweet : tweets) {
+            TweetView tweetView = new TweetView(FeedActivity.this, tweet);
+            linearLayout.addView(tweetView);
+//                if (tweet.coordinates != null || tweet.place != null) {
+//                    Double lat;
+//                    Double lon;
+//                    if (tweet.coordinates != null) {
+//                        lat = tweet.coordinates.getLatitude();
+//                        lon = tweet.coordinates.getLongitude();
+//                    } else {
+//
+//                        lon = tweet.place.boundingBox.coordinates.get(0).get(0).get(0);
+//                        lat = tweet.place.boundingBox.coordinates.get(0).get(0).get(1);
+//                    }
+//
+//                    LatLng coords = new LatLng(lat, lon);
+//
+//                    tweetIdCoordinates.put(tweet.id, coords);
+//                }
+        }
     }
 }

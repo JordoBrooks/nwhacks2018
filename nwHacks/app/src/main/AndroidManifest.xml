@@ -50,7 +50,7 @@
             android:theme="@style/AppTheme.NoActionBar"/>
 
         <service
-            android:name=".services.LocationUpdateService"
+            android:name=".services.TweetUpdateService"
             android:enabled="true"
             android:exported="true"/>
     </application>

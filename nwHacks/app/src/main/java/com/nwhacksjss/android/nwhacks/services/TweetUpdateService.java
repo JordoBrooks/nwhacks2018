@@ -19,24 +19,40 @@ import android.os.Looper;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.gson.Gson;
 import com.nwhacksjss.android.nwhacks.FeedActivity;
 import com.nwhacksjss.android.nwhacks.R;
+import com.nwhacksjss.android.nwhacks.utils.LocationUtils;
+import com.nwhacksjss.android.nwhacks.utils.TweetUtils;
+import com.twitter.sdk.android.core.TwitterApiClient;
+import com.twitter.sdk.android.core.TwitterCore;
+import com.twitter.sdk.android.core.models.Search;
+import com.twitter.sdk.android.core.models.Tweet;
+import com.twitter.sdk.android.core.services.SearchService;
 
-public class LocationUpdateService extends Service {
+import java.util.ArrayList;
+import java.util.List;
 
-    private static final String TAG = LocationUpdateService.class.getSimpleName();
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
+public class TweetUpdateService extends Service {
+
+    private static final String TAG = TweetUpdateService.class.getSimpleName();
 
     public static final String ACTION_BROADCAST =
-            LocationUpdateService.class.getCanonicalName() + ".broadcast";
+            TweetUpdateService.class.getCanonicalName() + ".broadcast";
 
-    public static final String UPDATED_LOCATION =
-            LocationUpdateService.class.getCanonicalName() + ".location";
+    public static final String UPDATED_TWEETS =
+            TweetUpdateService.class.getCanonicalName() + ".location";
 
     /**
      * The name of the channel for notifications.
@@ -44,7 +60,7 @@ public class LocationUpdateService extends Service {
     private static final String CHANNEL_ID = "channel_01";
 
     private static final String STARTED_FROM_NOTIFICATION =
-            LocationUpdateService.class.getCanonicalName() + ".started_from_notification";
+            TweetUpdateService.class.getCanonicalName() + ".started_from_notification";
 
     /**
      * The identifier for the notification displayed for the foreground service.
@@ -65,13 +81,13 @@ public class LocationUpdateService extends Service {
     /**
      * The desired interval for location updates. Inexact. Updates may be more or less frequent.
      */
-    private static final long UPDATE_INTERVAL_IN_MILLISECONDS = 10000;
+    private static final long UPDATE_INTERVAL_IN_MILLISECONDS = 20000;
 
     /**
      * The fastest rate for active location updates. Updates will never be more frequent
      * than this value.
      */
-    private static final long FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS = 3000;
+    private static final long FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS = 10000;
 
     /**
      * Contains parameters used by Fused Location Provider API.
@@ -92,14 +108,18 @@ public class LocationUpdateService extends Service {
 
     private static boolean trackMeMode;
 
+    private Long lastSinceId;
+
     /**
      * The current location.
      */
     private Location location;
 
+    private List<Tweet> tweets;
+
     private Context context;
 
-    public LocationUpdateService() {
+    public TweetUpdateService() {
     }
 
     @Override
@@ -113,20 +133,13 @@ public class LocationUpdateService extends Service {
             public void onLocationResult(LocationResult locationResult) {
                 super.onLocationResult(locationResult);
 
-                location = locationResult.getLastLocation();
+                Location newLocation = locationResult.getLastLocation();
 
-                // Update notification content if running as a foreground service.
-                if (serviceIsRunningInForeground(context)) {
-                    Notification n = getNotification();
-                    notificationManager.notify(NOTIFICATION_ID, n);
-                }
-
-                // Notify anyone listening for broadcasts about the new location.
-                Intent intent = new Intent(ACTION_BROADCAST);
-                intent.putExtra(UPDATED_LOCATION, location);
-                LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
+                handleUpdatedLocation(newLocation);
             }
         };
+
+        lastSinceId = 951701941301624832l; // TODO: generate new sinceId for each instance
 
         createLocationRequest();
 
@@ -146,6 +159,61 @@ public class LocationUpdateService extends Service {
             // Set the Notification Channel for the Notification Manager.
             notificationManager.createNotificationChannel(mChannel);
         }
+    }
+
+    private void handleUpdatedLocation(Location newLocation) {
+        if (LocationUtils.significantLocationChange(location, newLocation)) {
+            location = newLocation;
+            Toast.makeText(this, "New location - updating tweets.", Toast.LENGTH_SHORT).show();
+            updateTweetsFromTwitterApi();
+        } else {
+            Toast.makeText(this, "New location but non-significant change.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void updateTweetsFromTwitterApi() {
+        TwitterCore twitterCore = TwitterCore.getInstance();
+        TwitterApiClient client = twitterCore.getApiClient();
+        final SearchService searchService = client.getSearchService();
+
+        Call<Search> secondCall = searchService.tweets("", LocationUtils.convertLocationToGeocode(location, 1), null, null, null, 10, null, lastSinceId, null, null);
+
+        secondCall.enqueue(new Callback<Search>() {
+            @Override
+            public void onResponse(Call<Search> call, Response<Search> response) {
+                Search results = response.body();
+                List<Tweet> newTweets = results.tweets;
+
+                if (TweetUtils.tweetSetDiffers(tweets, newTweets)) {
+                    Toast.makeText(getApplicationContext(), "Tweet set differed!", Toast.LENGTH_SHORT).show();
+                    tweets = newTweets;
+
+                    // Notify anyone listening for broadcasts about the new location.
+                    Intent intent = new Intent(ACTION_BROADCAST);
+                    Gson gson = new Gson();
+                    ArrayList<String> tweetsAsStrings = new ArrayList<>();
+                    for (Tweet tweet : tweets) {
+                        tweetsAsStrings.add(gson.toJson(tweet));
+                    }
+                    intent.putStringArrayListExtra(UPDATED_TWEETS, tweetsAsStrings);
+                    LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
+
+                    // Update notification content if running as a foreground service.
+                    if (serviceIsRunningInForeground(context)) {
+                        int numNew = TweetUtils.findNumNewTweets(tweets, newTweets);
+                        Notification n = getNotification(numNew);
+                        notificationManager.notify(NOTIFICATION_ID, n);
+                    }
+                } else {
+                    Toast.makeText(getApplicationContext(), "Same tweets.", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Search> call, Throwable t) {
+                Toast.makeText(getApplicationContext(), "Could not find tweets near you.", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     @Override
@@ -222,9 +290,7 @@ public class LocationUpdateService extends Service {
         // do nothing. Otherwise, we make this service a foreground service.
         if (!changingConfiguration && trackMeMode) {
             Log.i(TAG, "Starting foreground service");
-
-            Notification n = getNotification();
-            startForeground(NOTIFICATION_ID, n);
+            startForeground(NOTIFICATION_ID, getNotification());
         } else {
             removeLocationUpdates();
             stopSelf();
@@ -234,7 +300,7 @@ public class LocationUpdateService extends Service {
 
     public void requestLocationUpdates() {
         Log.i(TAG, "Requesting location updates");
-        startService(new Intent(getApplicationContext(), LocationUpdateService.class));
+        startService(new Intent(getApplicationContext(), TweetUpdateService.class));
         try {
             fusedLocationClient.requestLocationUpdates(locationRequest,
                     locationCallback, Looper.myLooper());
@@ -248,18 +314,55 @@ public class LocationUpdateService extends Service {
      * clients, we don't need to deal with IPC.
      */
     public class LocalBinder extends Binder {
-        public LocationUpdateService getService() {
-            return LocationUpdateService.this;
+        public TweetUpdateService getService() {
+            return TweetUpdateService.this;
         }
     }
 
     /**
-     * Returns the {@link NotificationCompat} used as part of the foreground service.
+     * Returns the first notification to be used as part of the foreground service.
      */
     private Notification getNotification() {
-        Intent intent = new Intent(this, LocationUpdateService.class);
+        Intent intent = new Intent(this, TweetUpdateService.class);
 
-        CharSequence text = "(" + location.getLatitude() + ", " + location.getLongitude() + ")";
+        CharSequence text = "You are being tracked!";
+
+        // Extra to help us figure out if we arrived in onStartCommand via the notification or not.
+        intent.putExtra(STARTED_FROM_NOTIFICATION, true);
+
+        // The PendingIntent that leads to a call to onStartCommand() in this service.
+        PendingIntent servicePendingIntent = PendingIntent.getService(this, 0, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT);
+
+        // The PendingIntent to launch activity.
+        PendingIntent activityPendingIntent = PendingIntent.getActivity(this, 0,
+                new Intent(this, FeedActivity.class), 0);
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .addAction(R.drawable.launcher_icon, "Back to app",
+                        activityPendingIntent)
+                .addAction(R.drawable.launcher_icon, "Stop tracking me",
+                        servicePendingIntent)
+                .setContentText(text)
+                .setContentTitle("Notification")
+                .setOngoing(true)
+                .setPriority(Notification.PRIORITY_HIGH)
+                .setSmallIcon(R.drawable.launcher_icon)
+                .setTicker(text)
+                .setWhen(System.currentTimeMillis());
+
+        return builder.build();
+    }
+
+    /**
+     * Returns a notification to be used as part of the foreground service.
+     * @param numNew
+     */
+    private Notification getNotification(int numNew) {
+        Intent intent = new Intent(this, TweetUpdateService.class);
+
+        CharSequence text = "There " + (numNew == 1 ? "is " : "are ") +  numNew + " new "
+                + (numNew == 1 ? "tweet " : "tweets ") + "near you!";
 
         // Extra to help us figure out if we arrived in onStartCommand via the notification or not.
         intent.putExtra(STARTED_FROM_NOTIFICATION, true);
@@ -308,6 +411,6 @@ public class LocationUpdateService extends Service {
     }
 
     public static void setTrackMeMode(boolean trackMeMode) {
-        LocationUpdateService.trackMeMode = trackMeMode;
+        TweetUpdateService.trackMeMode = trackMeMode;
     }
 }

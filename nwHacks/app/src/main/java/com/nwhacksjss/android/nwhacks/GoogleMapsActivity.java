@@ -23,8 +23,11 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.nwhacksjss.android.nwhacks.adapters.TweetInfoWindowAdapter;
 import com.nwhacksjss.android.nwhacks.utils.PermissionUtils;
+import com.twitter.sdk.android.core.models.Tweet;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 public class GoogleMapsActivity extends AppCompatActivity
         implements
@@ -45,7 +48,9 @@ public class GoogleMapsActivity extends AppCompatActivity
 
     private GoogleMap.InfoWindowAdapter iwa;
 
-    public static HashMap<LatLng, Long> idLookup;
+    public static HashMap<LatLng, Long> idLookup = new HashMap<>();
+
+    private static List<Tweet> tweets = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,8 +58,6 @@ public class GoogleMapsActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_google_maps);
-
-        idLookup = new HashMap<>();
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
