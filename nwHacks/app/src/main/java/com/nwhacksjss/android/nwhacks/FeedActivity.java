@@ -6,8 +6,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.preference.PreferenceManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -21,6 +23,7 @@ import android.widget.Switch;
 import com.google.gson.Gson;
 import com.nwhacksjss.android.nwhacks.services.TweetUpdateService;
 import com.nwhacksjss.android.nwhacks.utils.PermissionUtils;
+import com.nwhacksjss.android.nwhacks.utils.PreferenceUtils;
 import com.twitter.sdk.android.core.models.Tweet;
 import com.twitter.sdk.android.tweetui.TweetView;
 
@@ -59,6 +62,8 @@ public class FeedActivity extends AppCompatActivity {
         }
     };
 
+    private Context context;
+
     // UI elements
     private View view;
     private View contentFeed;
@@ -74,6 +79,7 @@ public class FeedActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_feed);
+        context = this;
 
         view = findViewById(R.id.activity_feed);
         contentFeed = findViewById(R.id.content_feed);
@@ -83,13 +89,9 @@ public class FeedActivity extends AppCompatActivity {
 
         trackMeSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    // Track me mode is enabled
-                    TweetUpdateService.setTrackMeMode(true);
-                } else {
-                    // Track me mode is disabled
-                    TweetUpdateService.setTrackMeMode(false);
-                }
+                // If track me button is checked, set track me foreground service to be active
+                TweetUpdateService.setTrackMeMode(isChecked);
+                PreferenceUtils.setPrefTrackMeMode(context, isChecked);
             }
         });
 
@@ -139,6 +141,8 @@ public class FeedActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
+        setButtonsState(PreferenceUtils.getTrackMeModeStatus(context));
+
         Log.i(TAG, "Registering TweetUpdateReceiver.");
         LocalBroadcastManager.getInstance(this).registerReceiver(tweetUpdateReceiver,
                 new IntentFilter(TweetUpdateService.ACTION_BROADCAST));
@@ -184,6 +188,10 @@ public class FeedActivity extends AppCompatActivity {
             TweetView tweetView = new TweetView(FeedActivity.this, tweet);
             linearLayout.addView(tweetView);
         }
+    }
+
+    private void setButtonsState(boolean trackMeModeActive) {
+        trackMeSwitch.setChecked(trackMeModeActive);
     }
 
     /**

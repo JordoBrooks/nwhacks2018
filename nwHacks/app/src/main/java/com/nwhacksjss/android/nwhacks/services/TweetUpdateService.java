@@ -16,6 +16,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Looper;
+import android.preference.PreferenceManager;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
@@ -30,6 +31,7 @@ import com.google.gson.Gson;
 import com.nwhacksjss.android.nwhacks.FeedActivity;
 import com.nwhacksjss.android.nwhacks.R;
 import com.nwhacksjss.android.nwhacks.utils.LocationUtils;
+import com.nwhacksjss.android.nwhacks.utils.PreferenceUtils;
 import com.nwhacksjss.android.nwhacks.utils.TweetUtils;
 import com.twitter.sdk.android.core.TwitterApiClient;
 import com.twitter.sdk.android.core.TwitterCore;
@@ -224,6 +226,7 @@ public class TweetUpdateService extends Service {
 
         // We got here because the user decided to remove location updates from the notification.
         if (startedFromNotification) {
+            PreferenceUtils.setPrefTrackMeMode(context, false);
             removeTweetUpdates();
             stopSelf();
         }

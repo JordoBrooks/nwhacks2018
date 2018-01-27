@@ -12,6 +12,6 @@ public abstract class LocationUtils {
     }
 
     public static boolean significantLocationChange(Location location, Location newLocation) {
-        return true;
+        return false;
     }
 }
