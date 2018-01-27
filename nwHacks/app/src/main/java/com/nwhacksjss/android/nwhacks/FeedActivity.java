@@ -73,13 +73,17 @@ public class FeedActivity extends AppCompatActivity {
 
     private static List<Tweet> tweets = new ArrayList<>();
 
-    private static boolean firstRun = true; // TODO - this is for debugging...remove eventually
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_feed);
         context = this;
+
+        // if tweets is empty, likely due to the activity being first initialized, get latest
+        // tweet set from update service
+        if (tweets.size() == 0 && TweetUpdateService.getTweets() != null) {
+            tweets = TweetUpdateService.getTweets();
+        }
 
         view = findViewById(R.id.activity_feed);
         contentFeed = findViewById(R.id.content_feed);

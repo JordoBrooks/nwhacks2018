@@ -12,6 +12,16 @@ public abstract class LocationUtils {
     }
 
     public static boolean significantLocationChange(Location location, Location newLocation) {
-        return false;
+        if (location == null) {
+            return true;
+        }
+
+        double latitude = location.getLatitude();
+        double newLatitude = newLocation.getLatitude();
+
+        double longitude = location.getLongitude();
+        double newLongitude = newLocation.getLongitude();
+
+        return (Math.abs(latitude - newLatitude) >= 0.001 || Math.abs(longitude - newLongitude) >= 0.001);
     }
 }

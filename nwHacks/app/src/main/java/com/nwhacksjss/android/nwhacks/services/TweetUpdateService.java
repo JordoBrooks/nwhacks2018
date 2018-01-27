@@ -117,7 +117,7 @@ public class TweetUpdateService extends Service {
      */
     private Location location;
 
-    private List<Tweet> tweets;
+    private static List<Tweet> tweets;
 
     private Context context;
 
@@ -186,7 +186,8 @@ public class TweetUpdateService extends Service {
                 Search results = response.body();
                 List<Tweet> newTweets = results.tweets;
 
-                if (TweetUtils.tweetSetDiffers(tweets, newTweets)) {
+                int numNewTweets = TweetUtils.findNumNewTweets(tweets, newTweets);
+                if (numNewTweets > 0) {
                     Toast.makeText(getApplicationContext(), "Tweet set differed!", Toast.LENGTH_SHORT).show();
                     tweets = newTweets;
 
@@ -202,8 +203,7 @@ public class TweetUpdateService extends Service {
 
                     // Update notification content if running as a foreground service.
                     if (serviceIsRunningInForeground(context)) {
-                        int numNew = TweetUtils.findNumNewTweets(tweets, newTweets);
-                        Notification n = getNotification(numNew);
+                        Notification n = getNotification(numNewTweets);
                         notificationManager.notify(NOTIFICATION_ID, n);
                     }
                 } else {
@@ -253,6 +253,7 @@ public class TweetUpdateService extends Service {
     @Override
     public void onDestroy() {
         serviceHandler.removeCallbacksAndMessages(null);
+        PreferenceUtils.setPrefTrackMeMode(context, false);
     }
 
     private void createLocationRequest() {
@@ -415,5 +416,9 @@ public class TweetUpdateService extends Service {
 
     public static void setTrackMeMode(boolean trackMeMode) {
         TweetUpdateService.trackMeMode = trackMeMode;
+    }
+
+    public static List<Tweet> getTweets() {
+        return tweets;
     }
 }
