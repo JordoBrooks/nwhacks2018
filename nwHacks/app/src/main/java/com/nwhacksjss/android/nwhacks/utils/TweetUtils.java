@@ -5,11 +5,20 @@ import com.twitter.sdk.android.core.models.Tweet;
 import java.util.List;
 
 public abstract class TweetUtils {
-    public static boolean tweetSetDiffers(List<Tweet> tweets, List<Tweet> newTweets) {
-        return true;
-    }
 
     public static int findNumNewTweets(List<Tweet> tweets, List<Tweet> newTweets) {
-        return 7;
+        int numNew = 0;
+
+        if (tweets == null) {
+            numNew = newTweets.size();
+        } else {
+            for (Tweet newTweet : newTweets) {
+                if (!tweets.contains(newTweet)) {
+                    numNew++;
+                }
+            }
+        }
+
+        return numNew;
     }
 }

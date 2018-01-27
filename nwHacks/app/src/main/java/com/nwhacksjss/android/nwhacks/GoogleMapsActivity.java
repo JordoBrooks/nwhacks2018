@@ -96,6 +96,12 @@ public class GoogleMapsActivity extends AppCompatActivity
 
         super.onCreate(savedInstanceState);
 
+        // if tweets is empty, likely due to the activity being first initialized, get latest
+        // tweet set from update service
+        if (tweets.size() == 0 && TweetUpdateService.getTweets() != null) {
+            tweets = TweetUpdateService.getTweets();
+        }
+
         setContentView(R.layout.activity_google_maps);
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
