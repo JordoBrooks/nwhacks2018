@@ -3,11 +3,13 @@ package com.nwhacksjss.android.nwhacks;
 import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
@@ -36,7 +38,7 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class FeedActivity extends AppCompatActivity {
+public class FeedActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
 
     private HashMap<Long, LatLng> tweetIdCoordinates= new HashMap<>();
     private List<Tweet> tweets;
@@ -44,11 +46,15 @@ public class FeedActivity extends AppCompatActivity {
     private LinearLayout linearLayout;
     private Long lastSinceId;
     private static Geocode currentLocation;
+    private String filterBy = null;
+    private int distanceRadius;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_feed);
+
+        setupSharedPreferences();
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -95,7 +101,7 @@ public class FeedActivity extends AppCompatActivity {
                 Location location = locationManager.getLastKnownLocation(provider);
                 double lat = location.getLatitude();
                 double lon = location.getLongitude();
-                currentLocation = new Geocode(lat, lon, 1, Geocode.Distance.KILOMETERS);
+                currentLocation = new Geocode(lat, lon, distanceRadius, Geocode.Distance.KILOMETERS);
                 return true;
             }
         } catch (SecurityException e) {
@@ -123,7 +129,7 @@ public class FeedActivity extends AppCompatActivity {
         TwitterApiClient client = twitterCore.getApiClient();
         final SearchService searchService = client.getSearchService();
 
-        Call<Search> secondCall = searchService.tweets("", FeedActivity.currentLocation, null, null, null, 10, null, lastSinceId, null, null);
+        Call<Search> secondCall = searchService.tweets("", FeedActivity.currentLocation, null, null, filterBy, 10, null, lastSinceId, null, null);
 
         secondCall.enqueue(new Callback<Search>() {
             @Override
@@ -168,5 +174,28 @@ public class FeedActivity extends AppCompatActivity {
 
             }
         }
+    }
+
+    private void setupSharedPreferences() {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+
+        if (preferences.getBoolean("filterby_popular", false)) {
+            filterBy = "popular";
+        } else filterBy = null;
+
+        distanceRadius = preferences.getInt("distance_seekbar", 1);
+    }
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        if(key.equals("filterby_popular")) {
+            if (sharedPreferences.getBoolean("filterby_popular", false)) {
+                filterBy = "popular";
+            } else filterBy = null;
+        } else if(key.equals("distance_seekbar")) {
+            distanceRadius = sharedPreferences.getInt("distance_seekbar", 1);
+        }
+
+        startAPIClient(currentLocation);
     }
 }

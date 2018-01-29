@@ -3,5 +3,13 @@
     <CheckBoxPreference
         android:defaultValue="false"
         android:key="filterby_popular"
-        android:title="Popular" />
+        android:title="Show only popular tweets" />
+
+    <SeekBarPreference
+        android:id="@+id/distance_seekbar"
+        android:defaultValue="1"
+        android:key="search_radius"
+        android:title="Set the maximum distance of displayed tweets"
+        android:max="100"
+        android:layout_width="match_parent"/>
 </PreferenceScreen>
