@@ -4,6 +4,18 @@ import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.location.Criteria;
+import android.location.Location;
+import android.location.LocationManager;
+import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AppCompatActivity;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
@@ -30,7 +42,11 @@ import com.twitter.sdk.android.tweetui.TweetView;
 import java.util.ArrayList;
 import java.util.List;
 
-public class FeedActivity extends AppCompatActivity {
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
+public class FeedActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
 
     private static final String TAG = FeedActivity.class.getSimpleName();
 
@@ -68,16 +84,29 @@ public class FeedActivity extends AppCompatActivity {
     private View view;
     private View contentFeed;
     private LinearLayout linearLayout;
+    private Long lastSinceId;
+    private static Geocode currentLocation;
+    private String filterBy = null;
+    private int distanceRadius;
     private ProgressBar progressBar;
     private Switch trackMeSwitch;
 
     private static List<Tweet> tweets = new ArrayList<>();
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_feed);
         context = this;
+
+        setupSharedPreferences();
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            // Permission to access the location is missing.
+            PermissionUtils.requestPermission(this, PermissionUtils.LOCATION_PERMISSION_REQUEST_CODE,
+                    Manifest.permission.ACCESS_FINE_LOCATION, true);
 
         // if tweets is empty, likely due to the activity being first initialized, get latest
         // tweet set from update service
@@ -106,6 +135,24 @@ public class FeedActivity extends AppCompatActivity {
         addMapButton();
 
         initContentFeed();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.feed_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        if (id == R.id.action_settings) {
+            Intent openSettings = new Intent(this, SettingsActivity.class);
+            startActivity(openSettings);
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     private void initContentFeed() {
@@ -214,5 +261,28 @@ public class FeedActivity extends AppCompatActivity {
             repopulateFeed();
             showContentFeed();
         }
+    }
+
+    private void setupSharedPreferences() {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+
+        if (preferences.getBoolean("filterby_popular", false)) {
+            filterBy = "popular";
+        } else filterBy = null;
+
+        distanceRadius = preferences.getInt("distance_seekbar", 1);
+    }
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        if(key.equals("filterby_popular")) {
+            if (sharedPreferences.getBoolean("filterby_popular", false)) {
+                filterBy = "popular";
+            } else filterBy = null;
+        } else if(key.equals("distance_seekbar")) {
+            distanceRadius = sharedPreferences.getInt("distance_seekbar", 1);
+        }
+
+        startAPIClient(currentLocation);
     }
 }

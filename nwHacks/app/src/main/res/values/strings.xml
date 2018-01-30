@@ -8,11 +8,12 @@
     <string name="title_activity_login">Welcome!</string>
     <string name="com.twitter.sdk.android.CONSUMER_KEY">bK8BWOJSK3MILlZ8CS93zMnGw</string>
     <string name="com.twitter.sdk.android.CONSUMER_SECRET"> K8ZGbLr9EQVXyAPl2Qw63Z4WxV5FtiGVdoAEkeoqqdSnGoJ6nt</string>
-  
+
     <!-- Maps -->
     <string name="title_activity_google_maps">Map</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
+
     <string name="action_settings">Settings</string>
 
     <!-- Permissions -->
@@ -24,5 +25,8 @@
     <!-- Feed -->
     <string name="title_activity_feed">FeedActivity</string>
     <string name="map">Map</string>
+
+    <!-- Settings -->
+    <string name="action_settings">Settings</string>
 
 </resources>
