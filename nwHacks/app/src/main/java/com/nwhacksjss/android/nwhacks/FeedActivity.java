@@ -1,5 +1,6 @@
 package com.nwhacksjss.android.nwhacks;
 
+import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -85,7 +86,6 @@ public class FeedActivity extends AppCompatActivity implements SharedPreferences
     private View contentFeed;
     private LinearLayout linearLayout;
     private Long lastSinceId;
-    private static Geocode currentLocation;
     private String filterBy = null;
     private int distanceRadius;
     private ProgressBar progressBar;
@@ -108,34 +108,36 @@ public class FeedActivity extends AppCompatActivity implements SharedPreferences
             PermissionUtils.requestPermission(this, PermissionUtils.LOCATION_PERMISSION_REQUEST_CODE,
                     Manifest.permission.ACCESS_FINE_LOCATION, true);
 
-        // if tweets is empty, likely due to the activity being first initialized, get latest
-        // tweet set from update service
-        if (tweets.size() == 0 && TweetUpdateService.getTweets() != null) {
-            tweets = TweetUpdateService.getTweets();
-        }
-
-        view = findViewById(R.id.activity_feed);
-        contentFeed = findViewById(R.id.content_feed);
-        linearLayout = findViewById(R.id.feed_layout);
-        progressBar = findViewById(R.id.progress_bar_content_feed);
-        trackMeSwitch = findViewById(R.id.track_me_mode);
-
-        trackMeSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                // If track me button is checked, set track me foreground service to be active
-                TweetUpdateService.setTrackMeMode(isChecked);
-                PreferenceUtils.setPrefTrackMeMode(context, isChecked);
+            // if tweets is empty, likely due to the activity being first initialized, get latest
+            // tweet set from update service
+            if (tweets.size() == 0 && TweetUpdateService.getTweets() != null) {
+                tweets = TweetUpdateService.getTweets();
             }
-        });
 
-        PermissionUtils.fullRequestPermissionProcess(this, view);
+            view = findViewById(R.id.activity_feed);
+            contentFeed = findViewById(R.id.content_feed);
+            linearLayout = findViewById(R.id.feed_layout);
+            progressBar = findViewById(R.id.progress_bar_content_feed);
+            trackMeSwitch = findViewById(R.id.track_me_mode);
 
-        tweetUpdateReceiver = new FeedActivity.TweetUpdateReceiver();
+            trackMeSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                    // If track me button is checked, set track me foreground service to be active
+                    TweetUpdateService.setTrackMeMode(isChecked);
+                    PreferenceUtils.setPrefTrackMeMode(context, isChecked);
+                }
+            });
 
-        addMapButton();
+            PermissionUtils.fullRequestPermissionProcess(this, view);
 
-        initContentFeed();
+            tweetUpdateReceiver = new FeedActivity.TweetUpdateReceiver();
+
+            addMapButton();
+
+            initContentFeed();
+        }
     }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -283,6 +285,6 @@ public class FeedActivity extends AppCompatActivity implements SharedPreferences
             distanceRadius = sharedPreferences.getInt("distance_seekbar", 1);
         }
 
-        startAPIClient(currentLocation);
+        // TODO: refresh tweets
     }
 }
