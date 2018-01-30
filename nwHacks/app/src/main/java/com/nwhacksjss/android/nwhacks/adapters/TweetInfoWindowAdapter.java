@@ -1,10 +1,11 @@
-package com.nwhacksjss.android.nwhacks;
+package com.nwhacksjss.android.nwhacks.adapters;
 
 import android.app.Activity;
 import android.view.View;
 
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.Marker;
+import com.nwhacksjss.android.nwhacks.GoogleMapsActivity;
 import com.twitter.sdk.android.core.Callback;
 import com.twitter.sdk.android.core.Result;
 import com.twitter.sdk.android.core.TwitterApiClient;
@@ -18,8 +19,8 @@ import retrofit2.Call;
 
 public class TweetInfoWindowAdapter implements GoogleMap.InfoWindowAdapter {
 
-    View view;
-    Tweet tweet;
+    private View view;
+    private Tweet tweet;
     private Activity context;
 
     public TweetInfoWindowAdapter(Activity context){

@@ -13,9 +13,14 @@
     <string name="title_activity_google_maps">Map</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
+
+    <string name="action_settings">Settings</string>
+
+    <!-- Permissions -->
     <string name="permission_rationale_location">We need your location.</string>
     <string name="permission_required_toast">TRtC requires your GPS location to find tweets in your neighbourhood.</string>
     <string name="location_permission_denied">Location permission denied.</string>
+    <string name="ok">OK</string>
 
     <!-- Feed -->
     <string name="title_activity_feed">FeedActivity</string>

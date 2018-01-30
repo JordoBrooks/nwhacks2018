@@ -40,12 +40,20 @@
         <activity
             android:name=".GoogleMapsActivity"
             android:label="@string/title_activity_google_maps" />
+      
         <activity
             android:name=".FeedActivity"
-            android:label="@string/title_activity_feed"/>
+            android:label="@string/title_activity_feed"
+            android:theme="@style/AppTheme.NoActionBar"/>
+
         <activity android:name=".SettingsActivity"
             android:label="@string/action_settings"
-            android:parentActivityName=".FeedActivity"></activity>
+            android:parentActivityName=".FeedActivity" />
+         
+        <service
+            android:name=".services.TweetUpdateService"
+            android:enabled="true"
+            android:exported="true"/>
     </application>
 
 </manifest>

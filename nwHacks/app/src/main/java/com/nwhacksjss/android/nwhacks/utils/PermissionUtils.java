@@ -14,17 +14,22 @@
  * limitations under the License.
  */
 
-package com.nwhacksjss.android.nwhacks.Utils;
+package com.nwhacksjss.android.nwhacks.utils;
 
 import android.Manifest;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
+import android.view.View;
 import android.widget.Toast;
 
 import com.nwhacksjss.android.nwhacks.R;
@@ -34,7 +39,79 @@ import com.nwhacksjss.android.nwhacks.R;
  */
 public abstract class PermissionUtils {
 
+    private static final String TAG = PermissionUtils.class.getSimpleName();
+
+    // Used when checking for runtime permissions
     public static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
+
+    /**
+     * Checks if the user has granted permission to access fine location.
+     * @param context The activity this method was called from.
+     * @return true if permission has been granted, false otherwise.
+     */
+    public static boolean isLocationPermissionGranted(Context context) {
+        return ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
+    /**
+     * Returns whether additional information should be provided on permission request
+     * @param activity The activity this method was called from.
+     * @return True if additional rationale required, false otherwise.
+     */
+    public static boolean shouldProvidePermissionRequestRationale(Activity activity) {
+        return ActivityCompat.shouldShowRequestPermissionRationale(activity,
+                Manifest.permission.ACCESS_FINE_LOCATION);
+    }
+
+    /**
+     * Provide an additional rationale to the user. This would happen if the user denied the
+     * request previously, but didn't check the "Don't ask again" checkbox.
+     * @param activity The activity this method was called from.
+     * @param view The view associated with activity param.
+     */
+    public static void requestPermissionsWithRationale(final Activity activity, View view) {
+        Log.i(TAG, "Displaying permission rationale to provide additional context.");
+        Snackbar.make(
+                view,
+                R.string.permission_rationale_location,
+                Snackbar.LENGTH_INDEFINITE)
+                .setAction(R.string.ok, new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        // Request permission
+                        ActivityCompat.requestPermissions(activity,
+                                new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                                LOCATION_PERMISSION_REQUEST_CODE);
+                    }
+                })
+                .show();
+    }
+
+    /**
+     *  Request permission. It's possible this can be auto answered if device policy
+     *  sets the permission in a given state or the user denied the permission
+     *  previously and checked "Never ask again".
+     */
+    public static void requestPermission(Activity activity) {
+        Log.i(TAG, "Requesting permission");
+
+        ActivityCompat.requestPermissions(activity,
+                new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                LOCATION_PERMISSION_REQUEST_CODE);
+    }
+
+    public static void fullRequestPermissionProcess(Activity activity, View view) {
+        // Check if the user has allowed the app permission to access fine location
+        if (!isLocationPermissionGranted(activity)) {
+            // Permission to access the location is missing.
+            if (shouldProvidePermissionRequestRationale(activity)) {
+                requestPermissionsWithRationale(activity, view);
+            } else {
+                requestPermission(activity);
+            }
+        }
+    }
 
     /**
      * Requests the fine location permission. If a rationale with an additional explanation should
