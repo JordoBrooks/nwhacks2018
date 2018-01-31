@@ -102,40 +102,33 @@ public class FeedActivity extends AppCompatActivity implements SharedPreferences
 
         setupSharedPreferences();
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            // Permission to access the location is missing.
-            PermissionUtils.requestPermission(this, PermissionUtils.LOCATION_PERMISSION_REQUEST_CODE,
-                    Manifest.permission.ACCESS_FINE_LOCATION, true);
-
-            // if tweets is empty, likely due to the activity being first initialized, get latest
-            // tweet set from update service
-            if (tweets.size() == 0 && TweetUpdateService.getTweets() != null) {
-                tweets = TweetUpdateService.getTweets();
-            }
-
-            view = findViewById(R.id.activity_feed);
-            contentFeed = findViewById(R.id.content_feed);
-            linearLayout = findViewById(R.id.feed_layout);
-            progressBar = findViewById(R.id.progress_bar_content_feed);
-            trackMeSwitch = findViewById(R.id.track_me_mode);
-
-            trackMeSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                    // If track me button is checked, set track me foreground service to be active
-                    TweetUpdateService.setTrackMeMode(isChecked);
-                    PreferenceUtils.setPrefTrackMeMode(context, isChecked);
-                }
-            });
-
-            PermissionUtils.fullRequestPermissionProcess(this, view);
-
-            tweetUpdateReceiver = new FeedActivity.TweetUpdateReceiver();
-
-            addMapButton();
-
-            initContentFeed();
+        // if tweets is empty, likely due to the activity being first initialized, get latest
+        // tweet set from update service
+        if (tweets.size() == 0 && TweetUpdateService.getTweets() != null) {
+            tweets = TweetUpdateService.getTweets();
         }
+
+        view = findViewById(R.id.activity_feed);
+        contentFeed = findViewById(R.id.content_feed);
+        linearLayout = findViewById(R.id.feed_layout);
+        progressBar = findViewById(R.id.progress_bar_content_feed);
+        trackMeSwitch = findViewById(R.id.track_me_mode);
+
+        trackMeSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                // If track me button is checked, set track me foreground service to be active
+                TweetUpdateService.setTrackMeMode(isChecked);
+                PreferenceUtils.setPrefTrackMeMode(context, isChecked);
+            }
+        });
+
+        PermissionUtils.fullRequestPermissionProcess(this, view);
+
+        tweetUpdateReceiver = new FeedActivity.TweetUpdateReceiver();
+
+        addMapButton();
+
+        initContentFeed();
     }
 
 
